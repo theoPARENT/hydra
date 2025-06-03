@@ -2,8 +2,9 @@ import { useEffect, useState, useCallback } from "react";
 
 enum Feature {
   CheckDownloadWritePermission = "CHECK_DOWNLOAD_WRITE_PERMISSION",
-  Torbox = "TORBOX",
+  TorBox = "TORBOX",
   Nimbus = "NIMBUS",
+  NimbusPreview = "NIMBUS_PREVIEW",
 }
 
 export function useFeature() {

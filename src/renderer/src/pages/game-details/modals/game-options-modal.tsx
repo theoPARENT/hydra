@@ -1,15 +1,17 @@
 import { useContext, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, CheckboxField, Modal, TextField } from "@renderer/components";
-import type { LibraryGame } from "@types";
+import type { LibraryGame, ShortcutLocation } from "@types";
 import { gameDetailsContext } from "@renderer/context";
 import { DeleteGameModal } from "@renderer/pages/downloads/delete-game-modal";
 import { useDownload, useToast, useUserDetails } from "@renderer/hooks";
 import { RemoveGameFromLibraryModal } from "./remove-from-library-modal";
 import { ResetAchievementsModal } from "./reset-achievements-modal";
 import { FileDirectoryIcon, FileIcon } from "@primer/octicons-react";
+import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { debounce } from "lodash-es";
 import "./game-options-modal.scss";
+import { logger } from "@renderer/logger";
 
 export interface GameOptionsModalProps {
   visible: boolean;
@@ -45,6 +47,7 @@ export function GameOptionsModal({
   const [automaticCloudSync, setAutomaticCloudSync] = useState(
     game.automaticCloudSync ?? false
   );
+  const [creatingSteamShortcut, setCreatingSteamShortcut] = useState(false);
 
   const {
     removeGameInstaller,
@@ -107,15 +110,37 @@ export function GameOptionsModal({
     }
   };
 
-  const handleCreateShortcut = async () => {
+  const handleCreateSteamShortcut = async () => {
+    try {
+      setCreatingSteamShortcut(true);
+      await window.electron.createSteamShortcut(game.shop, game.objectId);
+
+      showSuccessToast(
+        t("create_shortcut_success"),
+        t("you_might_need_to_restart_steam")
+      );
+
+      updateGame();
+    } catch (error: unknown) {
+      logger.error("Failed to create Steam shortcut", error);
+      showErrorToast(t("create_shortcut_error"));
+    } finally {
+      setCreatingSteamShortcut(false);
+    }
+  };
+
+  const handleCreateShortcut = async (location: ShortcutLocation) => {
     window.electron
-      .createGameShortcut(game.shop, game.objectId)
+      .createGameShortcut(game.shop, game.objectId, location)
       .then((success) => {
         if (success) {
           showSuccessToast(t("create_shortcut_success"));
         } else {
           showErrorToast(t("create_shortcut_error"));
         }
+      })
+      .catch(() => {
+        showErrorToast(t("create_shortcut_error"));
       });
   };
 
@@ -139,17 +164,28 @@ export function GameOptionsModal({
   };
 
   const handleChangeWinePrefixPath = async () => {
+    const defaultPath =
+      await window.electron.getDefaultWinePrefixSelectionPath();
+
     const { filePaths } = await window.electron.showOpenDialog({
       properties: ["openDirectory"],
+      defaultPath: defaultPath ?? game?.winePrefixPath ?? "",
     });
 
     if (filePaths && filePaths.length > 0) {
-      await window.electron.selectGameWinePrefix(
-        game.shop,
-        game.objectId,
-        filePaths[0]
-      );
-      await updateGame();
+      try {
+        await window.electron.selectGameWinePrefix(
+          game.shop,
+          game.objectId,
+          filePaths[0]
+        );
+        await updateGame();
+      } catch (error) {
+        showErrorToast(
+          t("invalid_wine_prefix_path"),
+          t("invalid_wine_prefix_path_description")
+        );
+      }
     }
   };
 
@@ -175,6 +211,9 @@ export function GameOptionsModal({
 
   const shouldShowWinePrefixConfiguration =
     window.electron.platform === "linux";
+
+  const shouldShowCreateStartMenuShortcut =
+    window.electron.platform === "win32";
 
   const handleResetAchievements = async () => {
     setIsDeletingAchievements(true);
@@ -278,9 +317,28 @@ export function GameOptionsModal({
                   >
                     {t("open_folder")}
                   </Button>
-                  <Button onClick={handleCreateShortcut} theme="outline">
+                  <Button
+                    onClick={() => handleCreateShortcut("desktop")}
+                    theme="outline"
+                  >
                     {t("create_shortcut")}
                   </Button>
+                  <Button
+                    onClick={handleCreateSteamShortcut}
+                    theme="outline"
+                    disabled={creatingSteamShortcut}
+                  >
+                    <SteamLogo />
+                    {t("create_steam_shortcut")}
+                  </Button>
+                  {shouldShowCreateStartMenuShortcut && (
+                    <Button
+                      onClick={() => handleCreateShortcut("start_menu")}
+                      theme="outline"
+                    >
+                      {t("create_start_menu_shortcut")}
+                    </Button>
+                  )}
                 </div>
               )}
             </div>
@@ -362,7 +420,7 @@ export function GameOptionsModal({
 
           <div className="game-options-modal__downloads">
             <div className="game-options-modal__header">
-              <h2>{t("downloads_secion_title")}</h2>
+              <h2>{t("downloads_section_title")}</h2>
               <h4 className="game-options-modal__header-description">
                 {t("downloads_section_description")}
               </h4>

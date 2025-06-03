@@ -20,7 +20,6 @@ import {
   setUserDetails,
   setProfileBackground,
   setGameRunning,
-  setFriendRequestCount,
 } from "@renderer/features";
 import { useTranslation } from "react-i18next";
 import { UserFriendModal } from "./pages/shared-modals/user-friend-modal";
@@ -29,7 +28,7 @@ import { downloadSourcesTable } from "./dexie";
 import { useSubscription } from "./hooks/use-subscription";
 import { HydraCloudModal } from "./pages/shared-modals/hydra-cloud/hydra-cloud-modal";
 
-import { injectCustomCss } from "./helpers";
+import { injectCustomCss, removeCustomCss } from "./helpers";
 import "./app.scss";
 
 export interface AppProps {
@@ -156,16 +155,6 @@ export function App() {
   }, [fetchUserDetails, t, showSuccessToast, updateUserDetails]);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onSyncFriendRequests((result) => {
-      dispatch(setFriendRequestCount(result.friendRequestCount));
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, [dispatch]);
-
-  useEffect(() => {
     const unsubscribe = window.electron.onGamesRunning((gamesRunning) => {
       if (gamesRunning.length) {
         const lastGame = gamesRunning[gamesRunning.length - 1];
@@ -257,16 +246,26 @@ export function App() {
     };
   }, [updateRepacks]);
 
-  useEffect(() => {
-    const loadAndApplyTheme = async () => {
-      const activeTheme = await window.electron.getActiveCustomTheme();
-
-      if (activeTheme?.code) {
-        injectCustomCss(activeTheme.code);
-      }
-    };
-    loadAndApplyTheme();
+  const loadAndApplyTheme = useCallback(async () => {
+    const activeTheme = await window.electron.getActiveCustomTheme();
+    if (activeTheme?.code) {
+      injectCustomCss(activeTheme.code);
+    } else {
+      removeCustomCss();
+    }
   }, []);
+
+  useEffect(() => {
+    loadAndApplyTheme();
+  }, [loadAndApplyTheme]);
+
+  useEffect(() => {
+    const unsubscribe = window.electron.onCustomThemeUpdated(() => {
+      loadAndApplyTheme();
+    });
+
+    return () => unsubscribe();
+  }, [loadAndApplyTheme]);
 
   const playAudio = useCallback(() => {
     const audio = new Audio(achievementSound);
@@ -283,14 +282,6 @@ export function App() {
       unsubscribe();
     };
   }, [playAudio]);
-
-  useEffect(() => {
-    const unsubscribe = window.electron.onCssInjected((cssString) => {
-      injectCustomCss(cssString);
-    });
-
-    return () => unsubscribe();
-  }, []);
 
   const handleToastClose = useCallback(() => {
     dispatch(closeToast());

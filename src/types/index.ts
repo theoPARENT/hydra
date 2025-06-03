@@ -1,7 +1,7 @@
 import type { Cracker, DownloadSourceStatus, Downloader } from "@shared";
 import type { SteamAppDetails } from "./steam.types";
 import type { Download, Game, Subscription } from "./level.types";
-import type { GameShop } from "./game.types";
+import type { GameShop, UnlockedAchievement } from "./game.types";
 
 export type FriendRequestAction = "ACCEPTED" | "REFUSED" | "CANCEL";
 
@@ -36,8 +36,24 @@ export interface DownloadSource {
   updatedAt: Date;
 }
 
+export interface ShopAssets {
+  objectId: string;
+  shop: GameShop;
+  title: string;
+  iconUrl: string | null;
+  libraryHeroImageUrl: string;
+  libraryImageUrl: string;
+  logoImageUrl: string;
+  logoPosition: string | null;
+  coverImageUrl: string;
+}
+
 export type ShopDetails = SteamAppDetails & {
   objectId: string;
+};
+
+export type ShopDetailsWithAssets = ShopDetails & {
+  assets: ShopAssets | null;
 };
 
 export interface TorrentFile {
@@ -45,18 +61,16 @@ export interface TorrentFile {
   length: number;
 }
 
-export interface UserGame {
+export type UserGame = {
   objectId: string;
   shop: GameShop;
   title: string;
-  iconUrl: string | null;
-  cover: string;
   playTimeInSeconds: number;
   lastTimePlayed: Date | null;
   unlockedAchievementCount: number;
   achievementCount: number;
   achievementsPointsEarnedSum: number;
-}
+} & ShopAssets;
 
 export interface GameRunning {
   id: string;
@@ -100,13 +114,11 @@ export interface UserFriend {
   profileImageUrl: string | null;
   createdAt: string;
   updatedAt: string;
-  currentGame: {
-    title: string;
-    iconUrl: string;
-    objectId: string;
-    shop: GameShop;
-    sessionDurationInSeconds: number;
-  } | null;
+  currentGame:
+    | (ShopAssets & {
+        sessionDurationInSeconds: number;
+      })
+    | null;
 }
 
 export interface UserFriends {
@@ -138,10 +150,10 @@ export interface UserRelation {
   updatedAt: string;
 }
 
-export interface UserProfileCurrentGame extends Omit<GameRunning, "objectId"> {
-  objectId: string;
-  sessionDurationInSeconds: number;
-}
+export type UserProfileCurrentGame = GameRunning &
+  ShopAssets & {
+    sessionDurationInSeconds: number;
+  };
 
 export type ProfileVisibility = "PUBLIC" | "PRIVATE" | "FRIENDS";
 
@@ -215,13 +227,12 @@ export interface DownloadSourceValidationResult {
 export interface GameStats {
   downloadCount: number;
   playerCount: number;
+  assets: ShopAssets | null;
 }
 
-export interface TrendingGame {
+export interface TrendingGame extends ShopAssets {
+  description: string | null;
   uri: string;
-  description: string;
-  background: string;
-  logo: string | null;
 }
 
 export interface UserStatsPercentile {
@@ -237,6 +248,12 @@ export interface UserStats {
   unlockedAchievementSum?: number;
 }
 
+export interface UpdatedUnlockedAchievements {
+  objectId: string;
+  shop: GameShop;
+  achievements: UnlockedAchievement[];
+}
+
 export interface AchievementFile {
   type: Cracker;
   filePath: string;
@@ -245,6 +262,16 @@ export interface AchievementFile {
 export type GameAchievementFiles = {
   [id: string]: AchievementFile[];
 };
+
+export interface AchievementNotificationInfo {
+  title: string;
+  description?: string;
+  iconUrl: string;
+  isHidden: boolean;
+  isRare: boolean;
+  isPlatinum: boolean;
+  points?: number;
+}
 
 export interface GameArtifact {
   id: string;
@@ -255,6 +282,7 @@ export interface GameArtifact {
   hostname: string;
   downloadCount: number;
   label?: string;
+  isFrozen: boolean;
 }
 
 export interface ComparedAchievements {
@@ -296,10 +324,42 @@ export interface CatalogueSearchPayload {
   developers: string[];
 }
 
-export interface LibraryGame extends Game {
+export type CatalogueSearchResult = {
   id: string;
-  download: Download | null;
-}
+  tags: string[];
+  genres: string[];
+  objectId: string;
+  shop: GameShop;
+  createdAt: Date;
+  updatedAt: Date;
+  title: string;
+  installCount: number;
+  achievementCount: number;
+  shopData: string;
+} & ShopAssets;
+
+export type LibraryGame = Game &
+  Partial<ShopAssets> & {
+    id: string;
+    download: Download | null;
+  };
+
+export type UserGameDetails = ShopAssets & {
+  id: string;
+  playTimeInSeconds: number;
+  unlockedAchievementCount: number;
+  achievementsPointsEarnedSum: number;
+  lastTimePlayed: Date | null;
+  isDeleted: boolean;
+  isFavorite: boolean;
+  friendsWhoPlayed: {
+    id: string;
+    displayName: string;
+    profileImageUrl: string | null;
+    lastTimePlayed: Date | null;
+    playTimeInSeconds: number;
+  }[];
+};
 
 export * from "./game.types";
 export * from "./steam.types";

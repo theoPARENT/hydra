@@ -1,16 +1,26 @@
-import { DownloadManager, Ludusavi, startMainLoop } from "./services";
-import { RealDebridClient } from "./services/download/real-debrid";
-import { HydraApi } from "./services/hydra-api";
-import { uploadGamesBatch } from "./services/library-sync";
 import { downloadsSublevel } from "./level/sublevels/downloads";
 import { sortBy } from "lodash-es";
 import { Downloader } from "@shared";
 import { levelKeys, db } from "./level";
 import type { UserPreferences } from "@types";
-import { TorBoxClient } from "./services/download/torbox";
-import { CommonRedistManager } from "./services/common-redist-manager";
+import {
+  WSClient,
+  SystemPath,
+  CommonRedistManager,
+  TorBoxClient,
+  RealDebridClient,
+  Aria2,
+  DownloadManager,
+  HydraApi,
+  uploadGamesBatch,
+  startMainLoop,
+  Ludusavi,
+  Lock,
+} from "@main/services";
 
 export const loadState = async () => {
+  await Lock.acquireLock();
+
   const userPreferences = await db.get<string, UserPreferences | null>(
     levelKeys.userPreferences,
     {
@@ -20,6 +30,10 @@ export const loadState = async () => {
 
   await import("./events");
 
+  if (process.platform !== "darwin") {
+    Aria2.spawn();
+  }
+
   if (userPreferences?.realDebridApiToken) {
     RealDebridClient.authorize(userPreferences.realDebridApiToken);
   }
@@ -28,10 +42,12 @@ export const loadState = async () => {
     TorBoxClient.authorize(userPreferences.torBoxApiToken);
   }
 
-  Ludusavi.addManifestToLudusaviConfig();
+  Ludusavi.copyConfigFileToUserData();
+  Ludusavi.copyBinaryToUserData();
 
-  HydraApi.setupApi().then(() => {
+  await HydraApi.setupApi().then(() => {
     uploadGamesBatch();
+    WSClient.connect();
   });
 
   const downloads = await downloadsSublevel
@@ -65,4 +81,6 @@ export const loadState = async () => {
   startMainLoop();
 
   CommonRedistManager.downloadCommonRedist();
+
+  SystemPath.checkIfPathsAreAvailable();
 };

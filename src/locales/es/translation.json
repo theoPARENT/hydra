@@ -27,7 +27,8 @@
     "sign_in": "Iniciar sesión",
     "friends": "Amigos",
     "need_help": "¿Necesitas ayuda?",
-    "favorites": "Favoritos"
+    "favorites": "Favoritos",
+    "playable_button_title": "Mostrar solo juegos que puedes jugar ahora"
   },
   "header": {
     "search": "Buscar juegos",
@@ -44,6 +45,9 @@
     "downloading_metadata": "Descargando metadatos de {{title}}…",
     "downloading": "Descargando {{title}}… ({{percentage}} completado) - Finalizando {{eta}} - {{speed}}",
     "calculating_eta": "Descargando {{title}}… ({{percentage}} completado) - Calculando tiempo restante…",
+    "installation_complete": "Instalación completada",
+    "installation_complete_message": "Common redistributables instalados exitosamente",
+    "installing_common_redist": "{{log}}…",
     "checking_files": "Verificando archivos de {{title}}… ({{percentage}} completado)"
   },
   "catalogue": {
@@ -59,6 +63,8 @@
   },
   "game_details": {
     "open_download_options": "Ver opciones de descargas",
+    "automatically_extract_downloaded_files": "Extraer automáticamente archivos descargados",
+    "download_error_not_cached_on_hydra": "Esta descarga no está disponible en Nimbus.",
     "download_options_zero": "No hay opciones de descargas disponibles",
     "download_options_one": "{{count}} opción de descarga",
     "download_options_other": "{{count}} opciones de descargas",
@@ -119,14 +125,16 @@
     "options": "Opciones",
     "executable_section_title": "Ejecutable",
     "executable_section_description": "Ruta del archivo que se ejecutará cuando se presione \"Jugar\"",
-    "downloads_secion_title": "Descargas",
+    "downloads_section_title": "Descargas",
     "downloads_section_description": "Buscar actualizaciones u otras versiones de este juego",
     "danger_zone_section_title": "Opciones Avanzadas",
     "danger_zone_section_description": "Eliminar este juego de tu librería o los archivos descargados por Hydra (Esto solo eliminará los archivos de instalación y no el juego instalado)",
     "download_in_progress": "Descarga en progreso",
     "download_paused": "Descarga pausada",
+    "create_steam_shortcut": "Crear atajo de Steam",
     "last_downloaded_option": "Última opción descargada",
     "create_shortcut_success": "Atajo creado con éxito",
+    "you_might_need_to_restart_steam": "Es posible que necesites reiniciar Steam para ver los cambios",
     "create_shortcut_error": "Error al crear un atajo",
     "nsfw_content_title": "Este juego contiene contenido inapropiado.",
     "nsfw_content_description": "{{title}} puede ser no adecuado para todas las edades por su contenido. \n¿Deseas continuar de igual forma?",
@@ -190,10 +198,13 @@
     "reset_achievements_error": "Se produjo un error al reiniciar los logros",
     "download_error_gofile_quota_exceeded": "Has excedido la cuota mensual de Gofile. Por favor espera a que se reinicie la cuota.",
     "download_error_real_debrid_account_not_authorized": "Tu cuenta de Real-Debrid no está autorizada para nueva descargas. Por favor, revisa los ajustes de tu cuenta e intenta de nuevo.",
-    "download_error_not_cached_in_real_debrid": "Esta descarga no está disponible en Real-Debrid y el estado de descarga del sondeo de Real-Debrid aún no está disponible.",
-    "download_error_not_cached_in_torbox": "Esta descarga no está disponible en Torbox y el estado de descarga del sondeo aún no está disponible.",
+    "download_error_not_cached_on_real_debrid": "Esta descarga no está disponible en Real-Debrid y el estado de descarga del sondeo de Real-Debrid aún no está disponible.",
+    "download_error_not_cached_on_torbox": "Esta descarga no está disponible en TorBox y el estado de descarga del sondeo aún no está disponible.",
     "game_added_to_favorites": "Juego añadido a favoritos",
-    "game_removed_from_favorites": "Juego removido de favoritos"
+    "game_removed_from_favorites": "Juego removido de favoritos",
+    "invalid_wine_prefix_path": "Ruta de prefixo Wine inválida",
+    "invalid_wine_prefix_path_description": "La ruta al prefixo Wine es inválida. Por favor, verifica la ruta y vuelve a intentarlo.",
+    "missing_wine_prefix": ""
   },
   "activation": {
     "title": "Activar Hydra",
@@ -230,10 +241,19 @@
     "seeding": "Seeding",
     "stop_seeding": "Detener seeding",
     "resume_seeding": "Continuar seeding",
+    "extract": "Extraer archivos",
+    "extracting": "Extrayendo archivos…",
     "options": "Gestionar"
   },
   "settings": {
     "downloads_path": "Ruta de descarga",
+    "common_redist": "Common redistributables",
+    "common_redist_description": "Las Common redistributables son requeridos para ejecutar algunos juegos. Es recomendado instalarlos para evitar problemas.",
+    "create_real_debrid_account": "Presiona acá si no tienes una cuenta de Real-Debrid aún",
+    "create_torbox_account": "Presiona acá si no tienes una cuenta de TorBox aún",
+    "install_common_redist": "Instalar",
+    "installing_common_redist": "Instalando…",
+    "show_download_speed_in_megabytes": "Mostrar velocidad de descargar en megabytes por segundo",
     "change": "Cambiar",
     "notifications": "Notificaciones",
     "enable_download_notifications": "Cuando se completa una descarga",
@@ -326,7 +346,7 @@
     "editor_tab_code": "Código",
     "editor_tab_info": "Info",
     "editor_tab_save": "Guardar",
-    "enable_torbox": "Habilitar Torbox",
+    "enable_torbox": "Habilitar TorBox",
     "error_importing_theme": "Error al importar el tema",
     "import_theme": "Importar tema",
     "import_theme_description": "Vas a importar el tema {{theme}} desde la tienda de temas",
@@ -346,6 +366,8 @@
   },
   "notifications": {
     "download_complete": "Descarga completada",
+    "extraction_complete": "Extracción completada",
+    "game_extracted": "{{title}} extraído exitosamente",
     "game_ready_to_install": "{{title}} está listo para instalarse",
     "repack_list_updated": "Lista de repacks actualizadas",
     "repack_count_one": "{{count}} repack ha sido añadido",
@@ -355,7 +377,8 @@
     "notification_achievement_unlocked_title": "Logro desbloqueado de {{game}}",
     "notification_achievement_unlocked_body": "{{achievement}} y otros {{count}} fueron desbloqueados",
     "new_friend_request_title": "Nueva solicitud de amistad",
-    "new_friend_request_description": "Has recibido una nueva solicitud de amistad"
+    "new_friend_request_description": "{{displayName}} te envió una solicitud de amistad",
+    "friend_started_playing_game": "{{displayName}} está jugando"
   },
   "system_tray": {
     "open": "Abrir Hydra",
@@ -475,6 +498,7 @@
   },
   "hydra_cloud": {
     "subscription_tour_title": "Suscripción Hydra Cloud",
+    "debrid_description": "Descargas hasta x4 más rápidas con Nimbus",
     "subscribe_now": "Suscribirse ahora",
     "cloud_saving": "Guardado en la nube",
     "cloud_achievements": "Guarda tus logros en la nube",

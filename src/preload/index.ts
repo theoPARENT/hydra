@@ -16,6 +16,10 @@ import type {
   GameAchievement,
   Theme,
   FriendRequestSync,
+  ShortcutLocation,
+  ShopAssets,
+  AchievementCustomNotificationPosition,
+  AchievementNotificationInfo,
 } from "@types";
 import type { AuthPage, CatalogueCategory } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -63,6 +67,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("searchGames", payload, take, skip),
   getCatalogue: (category: CatalogueCategory) =>
     ipcRenderer.invoke("getCatalogue", category),
+  saveGameShopAssets: (objectId: string, shop: GameShop, assets: ShopAssets) =>
+    ipcRenderer.invoke("saveGameShopAssets", objectId, shop, assets),
   getGameShopDetails: (objectId: string, shop: GameShop, language: string) =>
     ipcRenderer.invoke("getGameShopDetails", objectId, shop, language),
   getRandomGame: () => ipcRenderer.invoke("getRandomGame"),
@@ -122,8 +128,11 @@ contextBridge.exposeInMainWorld("electron", {
     ),
   addGameToLibrary: (shop: GameShop, objectId: string, title: string) =>
     ipcRenderer.invoke("addGameToLibrary", shop, objectId, title),
-  createGameShortcut: (shop: GameShop, objectId: string) =>
-    ipcRenderer.invoke("createGameShortcut", shop, objectId),
+  createGameShortcut: (
+    shop: GameShop,
+    objectId: string,
+    location: ShortcutLocation
+  ) => ipcRenderer.invoke("createGameShortcut", shop, objectId, location),
   updateExecutablePath: (
     shop: GameShop,
     objectId: string,
@@ -178,10 +187,16 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("deleteGameFolder", shop, objectId),
   getGameByObjectId: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("getGameByObjectId", shop, objectId),
+  syncGameByObjectId: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("syncGameByObjectId", shop, objectId),
   resetGameAchievements: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("resetGameAchievements", shop, objectId),
   extractGameDownload: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("extractGameDownload", shop, objectId),
+  getDefaultWinePrefixSelectionPath: () =>
+    ipcRenderer.invoke("getDefaultWinePrefixSelectionPath"),
+  createSteamShortcut: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("createSteamShortcut", shop, objectId),
   onGamesRunning: (
     cb: (
       gamesRunning: Pick<GameRunning, "id" | "sessionDurationInMillis">[]
@@ -197,12 +212,6 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-library-batch-complete", listener);
     return () =>
       ipcRenderer.removeListener("on-library-batch-complete", listener);
-  },
-  onAchievementUnlocked: (cb: () => void) => {
-    const listener = (_event: Electron.IpcRendererEvent) => cb();
-    ipcRenderer.on("on-achievement-unlocked", listener);
-    return () =>
-      ipcRenderer.removeListener("on-achievement-unlocked", listener);
   },
   onExtractionComplete: (cb: (shop: GameShop, objectId: string) => void) => {
     const listener = (
@@ -227,6 +236,10 @@ contextBridge.exposeInMainWorld("electron", {
     downloadOptionTitle: string | null
   ) =>
     ipcRenderer.invoke("uploadSaveGame", objectId, shop, downloadOptionTitle),
+  toggleArtifactFreeze: (gameArtifactId: string, freeze: boolean) =>
+    ipcRenderer.invoke("toggleArtifactFreeze", gameArtifactId, freeze),
+  renameGameArtifact: (gameArtifactId: string, label: string) =>
+    ipcRenderer.invoke("renameGameArtifact", gameArtifactId, label),
   downloadGameArtifact: (
     objectId: string,
     shop: GameShop,
@@ -401,6 +414,42 @@ contextBridge.exposeInMainWorld("electron", {
   /* Notifications */
   publishNewRepacksNotification: (newRepacksCount: number) =>
     ipcRenderer.invoke("publishNewRepacksNotification", newRepacksCount),
+  onAchievementUnlocked: (
+    cb: (
+      position?: AchievementCustomNotificationPosition,
+      achievements?: AchievementNotificationInfo[]
+    ) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      position?: AchievementCustomNotificationPosition,
+      achievements?: AchievementNotificationInfo[]
+    ) => cb(position, achievements);
+    ipcRenderer.on("on-achievement-unlocked", listener);
+    return () =>
+      ipcRenderer.removeListener("on-achievement-unlocked", listener);
+  },
+  onCombinedAchievementsUnlocked: (
+    cb: (
+      gameCount: number,
+      achievementsCount: number,
+      position: AchievementCustomNotificationPosition
+    ) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      gameCount: number,
+      achievementCount: number,
+      position: AchievementCustomNotificationPosition
+    ) => cb(gameCount, achievementCount, position);
+    ipcRenderer.on("on-combined-achievements-unlocked", listener);
+    return () =>
+      ipcRenderer.removeListener("on-combined-achievements-unlocked", listener);
+  },
+  updateAchievementCustomNotificationWindow: () =>
+    ipcRenderer.invoke("updateAchievementCustomNotificationWindow"),
+  showAchievementTestNotification: () =>
+    ipcRenderer.invoke("showAchievementTestNotification"),
 
   /* Themes */
   addCustomTheme: (theme: Theme) => ipcRenderer.invoke("addCustomTheme", theme),
@@ -419,11 +468,11 @@ contextBridge.exposeInMainWorld("electron", {
   /* Editor */
   openEditorWindow: (themeId: string) =>
     ipcRenderer.invoke("openEditorWindow", themeId),
-  onCssInjected: (cb: (cssString: string) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, cssString: string) =>
-      cb(cssString);
-    ipcRenderer.on("css-injected", listener);
-    return () => ipcRenderer.removeListener("css-injected", listener);
+  onCustomThemeUpdated: (cb: () => void) => {
+    const listener = (_event: Electron.IpcRendererEvent) => cb();
+    ipcRenderer.on("on-custom-theme-updated", listener);
+    return () =>
+      ipcRenderer.removeListener("on-custom-theme-updated", listener);
   },
   closeEditorWindow: (themeId?: string) =>
     ipcRenderer.invoke("closeEditorWindow", themeId),

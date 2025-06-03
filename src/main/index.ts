@@ -3,9 +3,13 @@ import updater from "electron-updater";
 import i18n from "i18next";
 import path from "node:path";
 import url from "node:url";
-import kill from "kill-port";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
-import { logger, WindowManager } from "@main/services";
+import {
+  logger,
+  clearGamesPlaytime,
+  WindowManager,
+  Lock,
+} from "@main/services";
 import resources from "@locales";
 import { PythonRPC } from "./services/python-rpc";
 import { db, levelKeys } from "./level";
@@ -24,7 +28,9 @@ autoUpdater.logger = logger;
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) app.quit();
 
-app.commandLine.appendSwitch("--no-sandbox");
+if (process.platform !== "linux") {
+  app.commandLine.appendSwitch("--no-sandbox");
+}
 
 i18n.init({
   resources,
@@ -58,11 +64,13 @@ app.whenReady().then(async () => {
     return net.fetch(url.pathToFileURL(decodeURI(filePath)).toString());
   });
 
-  await kill(PythonRPC.RPC_PORT).finally(() => loadState());
+  await loadState();
 
-  const language = await db.get<string, string>(levelKeys.language, {
-    valueEncoding: "utf-8",
-  });
+  const language = await db
+    .get<string, string>(levelKeys.language, {
+      valueEncoding: "utf8",
+    })
+    .catch(() => "en");
 
   if (language) i18n.changeLanguage(language);
 
@@ -70,6 +78,7 @@ app.whenReady().then(async () => {
     WindowManager.createMainWindow();
   }
 
+  WindowManager.createNotificationWindow();
   WindowManager.createSystemTray(language || "en");
 });
 
@@ -139,9 +148,19 @@ app.on("window-all-closed", () => {
   WindowManager.mainWindow = null;
 });
 
-app.on("before-quit", () => {
-  /* Disconnects libtorrent */
-  PythonRPC.kill();
+let canAppBeClosed = false;
+
+app.on("before-quit", async (e) => {
+  await Lock.releaseLock();
+
+  if (!canAppBeClosed) {
+    e.preventDefault();
+    /* Disconnects libtorrent */
+    PythonRPC.kill();
+    await clearGamesPlaytime();
+    canAppBeClosed = true;
+    app.quit();
+  }
 });
 
 app.on("activate", () => {

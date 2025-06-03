@@ -1,4 +1,4 @@
-import { Notification, app } from "electron";
+import { Notification } from "electron";
 import { t } from "i18next";
 import trayIcon from "@resources/tray-icon.png?asset";
 import fs from "node:fs";
@@ -10,16 +10,17 @@ import icon from "@resources/icon.png?asset";
 import { NotificationOptions, toXmlString } from "./xml";
 import { logger } from "../logger";
 import { WindowManager } from "../window-manager";
-import type { Game, UserPreferences } from "@types";
+import type { Game, GameStats, UserPreferences, UserProfile } from "@types";
 import { db, levelKeys } from "@main/level";
 import { restartAndInstallUpdate } from "@main/events/autoupdater/restart-and-install-update";
+import { SystemPath } from "../system-path";
 
 async function downloadImage(url: string | null) {
   if (!url) return undefined;
   if (!url.startsWith("http")) return undefined;
 
   const fileName = url.split("/").pop()!;
-  const outputPath = path.join(app.getPath("temp"), fileName);
+  const outputPath = path.join(SystemPath.getPath("temp"), fileName);
   const writer = fs.createWriteStream(outputPath);
 
   const response = await axios.get(url, {
@@ -80,7 +81,9 @@ export const publishNotificationUpdateReadyToInstall = async (
     .show();
 };
 
-export const publishNewFriendRequestNotification = async () => {
+export const publishNewFriendRequestNotification = async (
+  user: UserProfile
+) => {
   const userPreferences = await db.get<string, UserPreferences | null>(
     levelKeys.userPreferences,
     {
@@ -96,8 +99,27 @@ export const publishNewFriendRequestNotification = async () => {
     }),
     body: t("new_friend_request_description", {
       ns: "notifications",
+      displayName: user.displayName,
     }),
-    icon: trayIcon,
+    icon: user?.profileImageUrl
+      ? await downloadImage(user.profileImageUrl)
+      : trayIcon,
+  }).show();
+};
+
+export const publishFriendStartedPlayingGameNotification = async (
+  friend: UserProfile,
+  game: GameStats
+) => {
+  new Notification({
+    title: t("friend_started_playing_game", {
+      ns: "notifications",
+      displayName: friend.displayName,
+    }),
+    body: game.assets?.title,
+    icon: friend?.profileImageUrl
+      ? await downloadImage(friend.profileImageUrl)
+      : trayIcon,
   }).show();
 };
 
@@ -140,7 +162,7 @@ export const publishExtractionCompleteNotification = async (game: Game) => {
 };
 
 export const publishNewAchievementNotification = async (info: {
-  achievements: { displayName: string; iconUrl: string }[];
+  achievements: { title: string; iconUrl: string }[];
   unlockedAchievementCount: number;
   totalAchievementCount: number;
   gameTitle: string;
@@ -154,12 +176,12 @@ export const publishNewAchievementNotification = async (info: {
             gameTitle: info.gameTitle,
             achievementCount: info.achievements.length,
           }),
-          body: info.achievements.map((a) => a.displayName).join(", "),
+          body: info.achievements.map((a) => a.title).join(", "),
           icon: (await downloadImage(info.gameIcon)) ?? icon,
         }
       : {
           title: t("achievement_unlocked", { ns: "achievement" }),
-          body: info.achievements[0].displayName,
+          body: info.achievements[0].title,
           icon: (await downloadImage(info.achievements[0].iconUrl)) ?? icon,
         };
 
